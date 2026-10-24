@@ -59,7 +59,7 @@ import kotlin.time.Duration.Companion.seconds
 
 
 fun main(args: Array<String>) {
-    initializeSentry()
+    // Do not send fork diagnostics to the original author Sentry project.
 
     // Configure Skiko render API based on platform (respect pre-set -D flag)
     if (System.getProperty("skiko.renderApi") == null) {
@@ -83,7 +83,7 @@ fun main(args: Array<String>) {
         lockIdentifier = "aerodl"
     )
 
-    FileKit.init(appId = "ada57c09-11e1-4d56-9d5d-0c480f6968ec")
+    FileKit.init(appId = "8b318f2f-f37a-47b0-aeee-f283606d5012")
 
     val cleanInstall = System.getProperty("cleanInstall", "false").toBoolean()
     if (cleanInstall) {
