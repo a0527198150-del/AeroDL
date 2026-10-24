@@ -49,7 +49,6 @@ import io.github.kdroidfilter.ytdlpgui.features.system.settings.SettingsViewMode
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.databasesDir
 import io.github.vinceglb.filekit.path
-import io.sentry.Sentry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.getString
@@ -80,7 +79,7 @@ fun main(args: Array<String>) {
 
     allowComposeNativeTrayLogging = LoggerConfig.enabled
     SingleInstanceManager.configuration = SingleInstanceManager.Configuration(
-        lockIdentifier = "aerodl"
+        lockIdentifier = "aerodl-a0527198150-del"
     )
 
     FileKit.init(appId = "8b318f2f-f37a-47b0-aeee-f283606d5012")
@@ -103,11 +102,7 @@ fun main(args: Array<String>) {
             LocalMetroViewModelFactory provides appGraph.metroViewModelFactory,
         ) {
             val startedAtLogin = remember { AutoLaunch.wasStartedAtLogin(args) }
-            val trayAppState = rememberTrayAppState(
-                initiallyVisible = !startedAtLogin,
-                // The main UI is a normal desktop window, never an auto-dismissing tray popup.
-
-            )
+            val trayAppState = rememberTrayAppState(initiallyVisible = !startedAtLogin)
             TrayAppStateHolder.set(trayAppState)
 
             if (startedAtLogin) {
@@ -263,21 +258,6 @@ fun main(args: Array<String>) {
             }
         }
     }
-}
-
-private fun initializeSentry() {
-    val sentryEnvironment = System.getenv("SENTRY_ENVIRONMENT")
-        ?.trim()
-        ?.takeIf { it.isNotEmpty() }
-        ?: "development"
-
-    Sentry.init { options ->
-        options.dsn = "https://e77a755df2930d297caf9d6d0fd07deb@o4510855773093888.ingest.de.sentry.io/4510855774797904"
-        options.environment = sentryEnvironment
-        options.release = NucleusApp.version
-        options.isDebug = LoggerConfig.enabled
-    }
-    infoln { "Sentry initialized for environment '$sentryEnvironment'." }
 }
 
 fun clearAppData() {
