@@ -138,7 +138,7 @@ nucleus.application {
 
 
     nativeDistributions {
-        vendor = "KDroidFilter"
+        vendor = "AeroDL Community"
         targetFormats(
             TargetFormat.Dmg,
             TargetFormat.Nsis,
@@ -151,7 +151,7 @@ nucleus.application {
         packageName = "AeroDl"
         packageVersion = releaseVersion
         description = "AeroDl"
-        homepage = "https://github.com/kdroidFilter/AeroDL"
+        homepage = "https://github.com/a0527198150-del/AeroDL"
         cleanupNativeLibs = true
         enableAotCache = true
         compressionLevel = CompressionLevel.Ultra
@@ -161,7 +161,7 @@ nucleus.application {
         publish {
             github {
                 enabled = true
-                owner = "kdroidFilter"
+                owner = "a0527198150-del"
                 repo = "AeroDL"
                 channel = ReleaseChannel.Latest
                 releaseType = ReleaseType.Release
@@ -171,7 +171,7 @@ nucleus.application {
         windows {
             iconFile.set(project.file("icons/logo.ico"))
             shortcut = true
-            upgradeUuid = "ada57c09-11e1-4d56-9d5d-0c480f6968ec"
+            upgradeUuid = "8b318f2f-f37a-47b0-aeee-f283606d5012"
             packageVersion = nativePackageVersion
             portable {
                 compressionLevel = CompressionLevel.Normal
@@ -186,7 +186,7 @@ nucleus.application {
             }
         }
         macOS {
-            bundleID = "io.github.kdroidfilter.ytdlpgui"
+            bundleID = "io.github.a0527198150.aerodl"
             dockName = "AeroDl"
             iconFile.set(project.file("icons/logo.icns"))
             packageVersion = nativePackageVersion
