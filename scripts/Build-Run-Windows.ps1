@@ -3,7 +3,12 @@ $ErrorActionPreference = 'Stop'
 $repo = Join-Path $env:USERPROFILE 'AeroDL-Desktop'
 $log = Join-Path $env:TEMP 'aerodl-build.log'
 
+Write-Host '[AeroDL] PowerShell build helper started.' -ForegroundColor Cyan
+Write-Host ('[AeroDL] Repository: ' + $repo)
+Write-Host '[AeroDL] Checking Java configuration and available JDKs...'
+
 function Find-Jdk25 {
+    Write-Host '[Java] Looking for an installed JDK 25...'
     $candidates = New-Object 'System.Collections.Generic.List[string]'
     $roots = New-Object 'System.Collections.Generic.List[string]'
 
@@ -34,6 +39,7 @@ function Find-Jdk25 {
         if ($root) { $roots.Add($root) }
     }
 
+    Write-Host '[Java] Checking registered JDK installations...'
     foreach ($registryKey in @(
         'HKLM:\SOFTWARE\JavaSoft\JDK',
         'HKCU:\SOFTWARE\JavaSoft\JDK',
@@ -48,6 +54,7 @@ function Find-Jdk25 {
         }
     }
 
+    Write-Host '[Java] Checking common installation folders...'
     foreach ($root in $roots) {
         if (-not (Test-Path -LiteralPath $root -PathType Container)) { continue }
         $candidates.Add($root)
@@ -58,16 +65,38 @@ function Find-Jdk25 {
         }
     }
 
+    Write-Host ('[Java] Found ' + $candidates.Count + ' candidate locations; verifying compiler versions...')
     foreach ($candidate in @($candidates | Select-Object -Unique)) {
         $compiler = Join-Path $candidate 'bin\javac.exe'
         if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) { continue }
+        Write-Host ('[Java] Testing ' + $candidate)
+        # Protect against a broken Java executable hanging the entire launcher.
+        $process = New-Object System.Diagnostics.Process
         try {
-            $version = (& $compiler -version 2>&1 | Out-String).Trim()
-            if ($LASTEXITCODE -eq 0 -and $version -match '^javac\s+25(\.|$)') {
+            $info = New-Object System.Diagnostics.ProcessStartInfo
+            $info.FileName = $compiler
+            $info.Arguments = '-version'
+            $info.UseShellExecute = $false
+            $info.CreateNoWindow = $true
+            $info.RedirectStandardOutput = $true
+            $info.RedirectStandardError = $true
+            $process.StartInfo = $info
+            if (-not $process.Start()) { continue }
+            if (-not $process.WaitForExit(10000)) {
+                Write-Warning ('Java compiler check timed out: ' + $compiler)
+                $process.Kill()
+                $process.WaitForExit()
+                continue
+            }
+            $version = ($process.StandardOutput.ReadToEnd() + "`n" + $process.StandardError.ReadToEnd()).Trim()
+            Write-Host ('[Java] ' + $version)
+            if ($process.ExitCode -eq 0 -and $version -match '^javac\s+25(\.|$)') {
                 return $candidate
             }
         } catch {
-            # Ignore invalid installations and try the next candidate.
+            Write-Warning ('Unable to inspect ' + $compiler + ': ' + $_.Exception.Message)
+        } finally {
+            $process.Dispose()
         }
     }
     return $null
