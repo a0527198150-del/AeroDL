@@ -25,7 +25,8 @@ import kotlinx.serialization.json.putJsonObject
 
 /**
  * Extracts YouTube playlist entries from `ytInitialData` over HTTP,
- * using Firefox cookies when available.
+ * anonymously by default. Firefox cookies are used only when the user
+ * explicitly selected Firefox as the cookie source.
  *
  * YouTube currently serves two playlist item shapes:
  * classic `playlistVideoRenderer`, and the newer `lockupViewModel`.
@@ -42,11 +43,12 @@ object YouTubePlaylistExtractor {
 
     suspend fun extract(
         url: String,
+        browserForCookies: String? = null,
         onProgress: (Int) -> Unit = {},
     ): Result<YouTubePlaylist> {
         val httpClient = KtorConfig.createHttpClient()
         return try {
-            extract(httpClient, url, onProgress)
+            extract(httpClient, url, browserForCookies, onProgress)
         } catch (e: Exception) {
             errorln(e) { "[YouTubePlaylistExtractor] ${e.message}" }
             Result.failure(e)
@@ -58,11 +60,18 @@ object YouTubePlaylistExtractor {
     internal suspend fun extract(
         httpClient: HttpClient,
         url: String,
+        browserForCookies: String? = null,
         onProgress: (Int) -> Unit = {},
     ): Result<YouTubePlaylist> {
-        val cookies = FirefoxCookies.loadForDomain("youtube.com")
-        val cookieHeader = FirefoxCookies.toHeader(cookies)
-        infoln { "[YouTubePlaylistExtractor] Loaded ${cookies.size} Firefox cookies" }
+        val cookieHeader = if (shouldUseFirefoxCookies(browserForCookies)) {
+            val cookies = FirefoxCookies.loadForDomain("youtube.com")
+            infoln { "[YouTubePlaylistExtractor] Using explicitly selected Firefox profile (${cookies.size} cookies)" }
+            FirefoxCookies.toHeader(cookies)
+        } else {
+            // Chrome/Edge cookies are protected by platform-specific encryption.
+            // Leave their handling to yt-dlp; never silently read Firefox instead.
+            ""
+        }
 
         val normalized = normalizeUrl(url)
         val playlistUrl = if (isChannelUrl(normalized)) {
@@ -110,6 +119,9 @@ object YouTubePlaylistExtractor {
         }
         return Result.success(YouTubePlaylist(title = title, videos = unique))
     }
+
+    internal fun shouldUseFirefoxCookies(browser: String?): Boolean =
+        browser?.trim()?.equals("firefox", ignoreCase = true) == true
 
     fun normalizeUrl(url: String): String {
         if (url.contains("/watch") && url.contains("list=")) {
@@ -199,7 +211,7 @@ object YouTubePlaylistExtractor {
             if (cookieHeader.isNotBlank()) header(HttpHeaders.Cookie, cookieHeader)
         }
         val body = response.bodyAsText()
-        checkYouTubeResponse(response.status.value, body, cookiesWereSent = cookieHeader.isNotBlank())
+        checkYouTubeResponse(response.status.value, body)
         return body
     }
 
@@ -238,21 +250,22 @@ object YouTubePlaylistExtractor {
             setBody(body.toString())
         }
         val text = response.bodyAsText()
-        checkYouTubeResponse(response.status.value, text, cookiesWereSent = cookieHeader.isNotBlank())
+        checkYouTubeResponse(response.status.value, text)
         return runCatching { json.parseToJsonElement(text) }.getOrNull()
     }
 
-    private fun checkYouTubeResponse(status: Int, body: String, cookiesWereSent: Boolean) {
+    private fun checkYouTubeResponse(status: Int, body: String) {
         val blocked = status == 418 ||
-            "blockByNetFree" in body ||
-            "netfree.link/block" in body ||
-            "netfree.link/img/block-favicon" in body
+            body.contains("blockByNetFree", ignoreCase = true) ||
+            body.contains("netfree.link/block", ignoreCase = true) ||
+            body.contains("netfree.link/img/block-favicon", ignoreCase = true)
         if (blocked) {
-            val cookieHint = if (cookiesWereSent) "Logged-in Firefox cookies were sent." else "No Firefox cookies were found."
-            error("NetFree blocked this request (HTTP $status). $cookieHint")
+            // Preserve network filtering decisions: never retry a filtered
+            // response through another access path.
+            error("NetFree blocked this request (HTTP $status).")
         }
         if (status !in 200..299) {
-            error("YouTube returned HTTP $status: ${body.take(200)}")
+            error("YouTube returned HTTP $status.")
         }
     }
 

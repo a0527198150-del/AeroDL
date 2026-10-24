@@ -26,7 +26,6 @@ import coil3.compose.AsyncImage
 import io.github.kdroidfilter.ytdlpgui.ui.NativeTheme
 import io.github.kdroidfilter.ytdlpgui.ui.component.*
 import io.github.kdroidfilter.ytdlpgui.ui.icons.Icons
-import dev.nucleusframework.core.runtime.Platform
 import io.github.kdroidfilter.ytdlpgui.core.navigation.Destination
 import io.github.kdroidfilter.ytdlpgui.core.platform.browser.openUrlInBrowser
 import io.github.kdroidfilter.ytdlpgui.di.LocalAppGraph
@@ -93,7 +92,7 @@ private fun Loader() {
 }
 
 @Composable
-private fun ErrorBox() {
+private fun ErrorBox(reason: PlaylistFailureReason, onEvent: (BulkDownloadEvents) -> Unit) {
     Column(
         Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -112,6 +111,24 @@ private fun ErrorBox() {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 24.dp)
         )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = stringResource(
+                when (reason) {
+                    PlaylistFailureReason.NETWORK_FILTERED -> Res.string.bulk_error_network_filtered
+                    PlaylistFailureReason.AUTHENTICATION -> Res.string.bulk_error_authentication
+                    PlaylistFailureReason.CONNECTION -> Res.string.bulk_error_connection
+                    PlaylistFailureReason.OTHER -> Res.string.bulk_error_other
+                }
+            ),
+            textAlign = TextAlign.Center,
+            color = NativeTheme.colors.text.text.secondary,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+        Spacer(Modifier.height(20.dp))
+        AccentButton(onClick = { onEvent(BulkDownloadEvents.Refresh) }) {
+            Text(stringResource(Res.string.init_retry))
+        }
     }
 }
 
@@ -506,45 +523,8 @@ private fun FallbackContent(
 ) {
     when (state.fallbackState) {
         is FallbackState.Extracting -> ExtractionProgress(state.fallbackState)
-        FallbackState.Error -> ErrorBox()
-        FallbackState.NeedsBrowserCookies -> NeedsBrowserCookiesBox(onEvent)
+        is FallbackState.Error -> ErrorBox(state.fallbackState.reason, onEvent)
         else -> { }
-    }
-}
-
-@Composable
-private fun NeedsBrowserCookiesBox(onEvent: (BulkDownloadEvents) -> Unit) {
-    val isWindows = remember { Platform.Current == Platform.Windows }
-    Column(
-        Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            icon = Icons.Regular.ErrorCircle,
-            contentDescription = stringResource(Res.string.cd_error_icon),
-            modifier = Modifier.size(96.dp),
-            tint = NativeTheme.colors.system.caution
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = stringResource(Res.string.bulk_fallback_enable_cookies_title),
-            style = NativeTheme.typography.subtitle,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = stringResource(
-                if (isWindows) Res.string.bulk_fallback_enable_cookies_firefox
-                else Res.string.bulk_fallback_enable_cookies_chrome_or_firefox
-            ),
-            color = NativeTheme.colors.text.text.secondary,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(16.dp))
-        AccentButton(onClick = { onEvent(BulkDownloadEvents.Refresh) }) {
-            Text(stringResource(Res.string.init_retry))
-        }
     }
 }
 

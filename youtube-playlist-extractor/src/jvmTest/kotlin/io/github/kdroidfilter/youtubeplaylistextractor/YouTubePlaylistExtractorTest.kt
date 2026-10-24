@@ -142,6 +142,16 @@ class YouTubePlaylistExtractorTest {
     }
 
     @Test
+    fun cookieSource_isOptInForFirefoxOnly() {
+        assertTrue(YouTubePlaylistExtractor.shouldUseFirefoxCookies("firefox"))
+        assertTrue(YouTubePlaylistExtractor.shouldUseFirefoxCookies("  FIREFOX "))
+        assertTrue(!YouTubePlaylistExtractor.shouldUseFirefoxCookies(""))
+        assertTrue(!YouTubePlaylistExtractor.shouldUseFirefoxCookies(null))
+        assertTrue(!YouTubePlaylistExtractor.shouldUseFirefoxCookies("chrome"))
+        assertTrue(!YouTubePlaylistExtractor.shouldUseFirefoxCookies("edge"))
+    }
+
+    @Test
     fun isChannelUrl_detectsHandleAndChannelPaths() {
         assertTrue(YouTubePlaylistExtractor.isChannelUrl("https://www.youtube.com/@someone"))
         assertTrue(YouTubePlaylistExtractor.isChannelUrl("https://www.youtube.com/channel/UCabc"))

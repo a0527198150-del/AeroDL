@@ -321,4 +321,8 @@
     <string name="converter_trim">חיתוך</string>
     <string name="converter_trim_duration">משך: %1$s</string>
 
+    <string name="bulk_error_network_filtered">הגישה ל־YouTube נחסמה על ידי סינון הרשת. בדוק את הרשאות הגישה ונסה שוב.</string>
+    <string name="bulk_error_authentication">YouTube דורש התחברות עבור תוכן זה. אפשר לבחור דפדפן מחובר בהגדרות. ב־Windows ייתכן שחילוץ עוגיות מ־Chrome או Edge לא יצליח.</string>
+    <string name="bulk_error_connection">לא ניתן להתחבר ל־YouTube. בדוק את חיבור הרשת ואת תעודות האבטחה ונסה שוב.</string>
+    <string name="bulk_error_other">לא הצלחנו לטעון את רשימת הסרטונים גם בניסיון החלופי. פרטי שתי השגיאות נמצאים ביומן האפליקציה.</string>
 </resources>

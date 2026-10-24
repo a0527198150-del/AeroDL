@@ -25,27 +25,13 @@ object BrowserDetector {
     private val detectionCache: MutableMap<SupportedBrowser, Boolean> = mutableMapOf()
 
     /**
-     * Browsers that are sandboxed on Windows and cannot be used for cookie extraction.
-     * Chrome and Edge use a sandbox that prevents yt-dlp from accessing their cookies.
+     * Offer installed browsers without hard-coding a Windows exclusion.
+     * yt-dlp may be able to use Chrome/Edge cookies depending on the browser
+     * version and OS encryption; extraction failures are reported by yt-dlp.
+     * The HTTP-only playlist fallback does not attempt to decrypt their stores.
      */
-    private val windowsSandboxedBrowsers = setOf(
-        SupportedBrowser.CHROME,
-        SupportedBrowser.EDGE
-    )
-
-    /**
-     * Returns a list of browsers that are installed on the current system
-     * and can be used for cookie extraction.
-     * On Windows, Chrome and Edge are excluded because they are sandboxed.
-     */
-    fun getInstalledBrowsers(): List<SupportedBrowser> {
-        val isWindows = Platform.Current == Platform.Windows
-        return SupportedBrowser.entries.filter { browser ->
-            val isInstalled = isInstalled(browser)
-            val isUsable = !isWindows || browser !in windowsSandboxedBrowsers
-            isInstalled && isUsable
-        }
-    }
+    fun getInstalledBrowsers(): List<SupportedBrowser> =
+        SupportedBrowser.entries.filter { isInstalled(it) }
 
     /**
      * Checks if a specific browser is installed.

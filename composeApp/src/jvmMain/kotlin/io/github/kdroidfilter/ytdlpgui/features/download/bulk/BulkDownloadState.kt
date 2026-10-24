@@ -5,6 +5,44 @@ import io.github.kdroidfilter.ytdlp.model.PlaylistInfo
 import io.github.kdroidfilter.ytdlp.model.VideoInfo
 
 /**
+ * Failure categories shown to the user; full technical details stay in the
+ * application log instead of displaying possibly sensitive command output.
+ */
+enum class PlaylistFailureReason {
+    NETWORK_FILTERED,
+    AUTHENTICATION,
+    CONNECTION,
+    OTHER,
+}
+
+/**
+ * Do not infer that missing cookies caused an unrelated yt-dlp error.
+ * Use both the primary and HTTP fallback diagnostics to select an actionable hint.
+ */
+fun classifyPlaylistFailure(
+    primaryDetail: String,
+    fallbackDetail: String = "",
+): PlaylistFailureReason {
+    val detail = "$primaryDetail\n$fallbackDetail".lowercase()
+    return when {
+        listOf("blockbynetfree", "netfree.link/block", "netfree blocked", "http 418")
+            .any { it in detail } -> PlaylistFailureReason.NETWORK_FILTERED
+        listOf(
+            "sign in to confirm", "login required", "log in to", "authentication required",
+            "cookies are required", "cookies required", "this video is private",
+            "sign in to youtube", "please sign in",
+        ).any { it in detail } -> PlaylistFailureReason.AUTHENTICATION
+        listOf(
+            "certificate verify failed", "sslhandshakeexception", "pkix path",
+            "unable to get local issuer certificate", "connection timed out",
+            "timed out", "name resolution", "dns", "network is unreachable",
+            "connection refused", "no route to host",
+        ).any { it in detail } -> PlaylistFailureReason.CONNECTION
+        else -> PlaylistFailureReason.OTHER
+    }
+}
+
+/**
  * Represents a single video entry in the bulk download list with its selection and availability state.
  */
 data class BulkVideoItem(
@@ -32,11 +70,8 @@ sealed class FallbackState {
     /** Fallback extraction completed */
     data object Completed : FallbackState()
 
-    /** Fallback extraction failed */
-    data object Error : FallbackState()
-
-    /** yt-dlp failed and no usable browser cookies are configured */
-    data object NeedsBrowserCookies : FallbackState()
+    /** Both extractors failed, or a network filter denied the request. */
+    data class Error(val reason: PlaylistFailureReason) : FallbackState()
 }
 
 data class BulkDownloadState(
@@ -74,7 +109,7 @@ data class BulkDownloadState(
         val emptyState = BulkDownloadState(isLoading = false)
         val errorState = BulkDownloadState(
             isLoading = false,
-            fallbackState = FallbackState.Error,
+            fallbackState = FallbackState.Error(PlaylistFailureReason.OTHER),
         )
     }
 }

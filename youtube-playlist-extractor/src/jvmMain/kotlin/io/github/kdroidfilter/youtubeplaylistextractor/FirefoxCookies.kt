@@ -17,10 +17,15 @@ object FirefoxCookies {
             return emptyList()
         }
 
-        val tmp = Files.createTempFile("ff_cookies_", ".sqlite")
-        Files.copy(cookiesDb, tmp, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        val tmp = try {
+            Files.createTempFile("ff_cookies_", ".sqlite")
+        } catch (e: Exception) {
+            warnln { "[FirefoxCookies] Could not create temporary cookie database: ${e.message}" }
+            return emptyList()
+        }
 
         return try {
+            Files.copy(cookiesDb, tmp, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
             DriverManager.getConnection("jdbc:sqlite:${tmp.toAbsolutePath()}").use { conn ->
                 conn.prepareStatement(
                     "SELECT name, value, host FROM moz_cookies WHERE host LIKE ?"
@@ -45,7 +50,7 @@ object FirefoxCookies {
             warnln { "[FirefoxCookies] Failed to read cookies: ${e.message}" }
             emptyList()
         } finally {
-            Files.deleteIfExists(tmp)
+            runCatching { Files.deleteIfExists(tmp) }
         }
     }
 

@@ -14,7 +14,6 @@ import io.github.kdroidfilter.ytdlp.model.VideoInfo
 import io.github.kdroidfilter.ytdlpgui.core.domain.manager.DownloadManager
 import io.github.kdroidfilter.ytdlpgui.core.navigation.Destination
 import io.github.kdroidfilter.ytdlpgui.core.ui.MVIViewModel
-import dev.nucleusframework.core.runtime.Platform
 import io.github.kdroidfilter.youtubeplaylistextractor.YouTubePlaylistExtractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -141,17 +140,24 @@ class BulkDownloadViewModel(
                 .onSuccess { videoList ->
                     infoln { "[BulkDownloadViewModel] Got video list successfully" }
                     infoln { "[BulkDownloadViewModel] Entries: ${videoList.size}" }
-                    handleVideoListSuccess(videoList)
+                    if (videoList.isEmpty()) {
+                        startFallback("yt-dlp returned an empty playlist")
+                    } else {
+                        handleVideoListSuccess(videoList)
+                    }
                 }
                 .onFailure { e ->
                     val detail = e.localizedMessage ?: e.message ?: e.toString()
-                    errorln { "[BulkDownloadViewModel] Error getting video list: $detail" }
-                    if (!hasUsableBrowserCookies()) {
-                        infoln { "[BulkDownloadViewModel] No usable browser cookies; skip HTTP fallback" }
+                    errorln { "[BulkDownloadViewModel] yt-dlp playlist extraction failed: $detail" }
+                    if (classifyPlaylistFailure(detail) == PlaylistFailureReason.NETWORK_FILTERED) {
+                        // Respect network filtering; a different extractor is not
+                        // an appropriate retry when access has been denied.
                         _isLoading.value = false
-                        _fallbackState.value = FallbackState.NeedsBrowserCookies
+                        _fallbackState.value = FallbackState.Error(PlaylistFailureReason.NETWORK_FILTERED)
                     } else {
-                        startFallback()
+                        // Try public metadata first. Browser login is not required
+                        // just because the primary extractor encountered an error.
+                        startFallback(detail)
                     }
                 }
         }
@@ -196,23 +202,16 @@ class BulkDownloadViewModel(
         _selectedAudioQualityPreset.value = YtDlpWrapper.AudioQualityPreset.HIGH
     }
 
-    private fun hasUsableBrowserCookies(): Boolean {
-        val browser = settingsRepository.cookiesFromBrowser.value.trim().lowercase()
-        if (browser.isBlank()) return false
-        // Chrome/Edge cookie DB is sandboxed on Windows; yt-dlp cannot read it.
-        if (Platform.Current == Platform.Windows) {
-            return browser != "chrome" && browser != "edge"
-        }
-        return true
-    }
-
-    private fun startFallback() {
-        infoln { "[BulkDownloadViewModel] Starting HTTP playlist fallback" }
+    private fun startFallback(primaryError: String) {
+        infoln { "[BulkDownloadViewModel] Starting HTTP playlist fallback after: $primaryError" }
         _isLoading.value = false
         _fallbackState.value = FallbackState.Extracting(0)
 
         viewModelScope.launch(Dispatchers.IO) {
-            YouTubePlaylistExtractor.extract(playlistUrl) { count ->
+            YouTubePlaylistExtractor.extract(
+                url = playlistUrl,
+                browserForCookies = settingsRepository.cookiesFromBrowser.value,
+            ) { count ->
                 _fallbackState.value = FallbackState.Extracting(count)
             }.onSuccess { playlist ->
                 infoln { "[BulkDownloadViewModel] Fallback extraction complete: ${playlist.videos.size} videos" }
@@ -228,8 +227,11 @@ class BulkDownloadViewModel(
                 handleVideoListSuccess(videoInfoList, playlist.title)
                 _fallbackState.value = FallbackState.Completed
             }.onFailure { e ->
-                errorln { "[BulkDownloadViewModel] Fallback extraction error: ${e.message}" }
-                _fallbackState.value = FallbackState.Error
+                val fallbackDetail = e.localizedMessage ?: e.message ?: e.toString()
+                errorln { "[BulkDownloadViewModel] HTTP fallback failed: $fallbackDetail; yt-dlp failure: $primaryError" }
+                _fallbackState.value = FallbackState.Error(
+                    classifyPlaylistFailure(primaryError, fallbackDetail)
+                )
             }
         }
     }
@@ -347,7 +349,7 @@ class BulkDownloadViewModel(
 
             BulkDownloadEvents.CancelFallback -> {
                 infoln { "[BulkDownloadViewModel] Fallback cancelled by user" }
-                _fallbackState.value = FallbackState.Error
+                _fallbackState.value = FallbackState.Error(PlaylistFailureReason.OTHER)
             }
         }
     }
