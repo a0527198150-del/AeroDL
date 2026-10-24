@@ -5,13 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Icon
+import androidx.compose.foundation.Image
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import coil3.SingletonImageLoader
@@ -24,7 +22,6 @@ import dev.nucleusframework.autolaunch.AutoLaunch
 import dev.nucleusframework.composenativetray.tray.api.Tray
 import dev.nucleusframework.composenativetray.trayapp.rememberTrayAppState
 import dev.nucleusframework.composenativetray.utils.allowComposeNativeTrayLogging
-import dev.nucleusframework.composenativetray.utils.isMenuBarInDarkMode
 import dev.nucleusframework.core.runtime.NucleusApp
 import dev.nucleusframework.core.runtime.Platform
 import dev.nucleusframework.core.runtime.SingleInstanceManager
@@ -38,8 +35,6 @@ import io.github.kdroidfilter.ytdlpgui.ui.NativeTheme
 import io.github.kdroidfilter.logging.LoggerConfig
 import io.github.kdroidfilter.logging.errorln
 import io.github.kdroidfilter.logging.infoln
-import io.github.kdroidfilter.ytdlpgui.core.design.icons.AeroDlLogoOnly
-import io.github.kdroidfilter.ytdlpgui.core.design.icons.AeroDlLogoOnlyRtl
 import io.github.kdroidfilter.ytdlpgui.di.AppGraph
 import io.github.kdroidfilter.ytdlpgui.di.LocalAppGraph
 import io.github.kdroidfilter.ytdlpgui.di.LocalWindowViewModelStoreOwner
@@ -52,6 +47,7 @@ import io.github.vinceglb.filekit.databasesDir
 import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.painterResource
 import ytdlpgui.composeapp.generated.resources.*
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
@@ -173,7 +169,6 @@ fun main(args: Array<String>) {
             val autoStartEnabled by settingsVm.autoLaunchEnabled.collectAsState()
             val clipboardEnabled by settingsVm.clipboardMonitoring.collectAsState()
 
-            val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
             val isWindowVisible by trayAppState.isVisible.collectAsState()
 
             // Resolve the menu texts in Compose rather than synchronously blocking
@@ -193,19 +188,12 @@ fun main(args: Array<String>) {
             Tray(
                 primaryAction = showMainWindow,
                 iconContent = {
-                    Icon(
-                        if (!isRtl) AeroDlLogoOnly else AeroDlLogoOnlyRtl,
-                        null,
+                    Image(
+                        painter = painterResource(Res.drawable.aerodl_icon),
+                        contentDescription = "AeroDL",
                         modifier = Modifier
                             .padding(if (Platform.Current != Platform.Windows) 12.dp else 2.dp)
                             .fillMaxSize(),
-                        tint = if (isDownloading) {
-                            Color(0xFF0E8420)
-                        } else if (isMenuBarInDarkMode()) {
-                            Color.White
-                        } else {
-                            Color.Black
-                        },
                     )
                 },
                 tooltip = appName + if (isDownloading) downloadingSuffix else "",
@@ -248,6 +236,7 @@ fun main(args: Array<String>) {
                 state = mainWindowState,
                 minimumSize = DpSize(760.dp, 520.dp),
                 title = "AeroDL",
+                icon = painterResource(Res.drawable.aerodl_icon),
                 visible = isWindowVisible,
             ) {
 
