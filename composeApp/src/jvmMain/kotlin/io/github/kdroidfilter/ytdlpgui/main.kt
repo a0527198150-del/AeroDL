@@ -19,7 +19,6 @@ import dev.nucleusframework.application.aotTraining
 import dev.nucleusframework.application.nucleusApplication
 import dev.nucleusframework.autolaunch.AutoLaunch
 import dev.nucleusframework.composenativetray.tray.api.Tray
-import dev.nucleusframework.composenativetray.trayapp.TrayWindowDismissMode
 import dev.nucleusframework.composenativetray.trayapp.rememberTrayAppState
 import dev.nucleusframework.composenativetray.utils.allowComposeNativeTrayLogging
 import dev.nucleusframework.composenativetray.utils.isMenuBarInDarkMode
@@ -43,7 +42,6 @@ import io.github.kdroidfilter.ytdlpgui.core.design.icons.AeroDlLogoOnlyRtl
 import io.github.kdroidfilter.ytdlpgui.di.AppGraph
 import io.github.kdroidfilter.ytdlpgui.di.LocalAppGraph
 import io.github.kdroidfilter.ytdlpgui.di.LocalWindowViewModelStoreOwner
-import io.github.kdroidfilter.ytdlpgui.core.config.SettingsKeys
 import io.github.kdroidfilter.ytdlpgui.di.TrayAppStateHolder
 import io.github.kdroidfilter.ytdlpgui.di.rememberWindowViewModelStoreOwner
 import io.github.kdroidfilter.ytdlpgui.features.system.settings.SettingsEvents
@@ -108,7 +106,7 @@ fun main(args: Array<String>) {
             val trayAppState = rememberTrayAppState(
                 initiallyVisible = !startedAtLogin,
                 // The main UI is a normal desktop window, never an auto-dismissing tray popup.
-                initialDismissMode = TrayWindowDismissMode.MANUAL,
+
             )
             TrayAppStateHolder.set(trayAppState)
 
@@ -250,15 +248,13 @@ fun main(args: Array<String>) {
                 val mainWindow = nucleusWindow
                 LaunchedEffect(windowActivationRequest) {
                     if (windowActivationRequest > 0) {
-                        mainWindow.show()
                         mainWindow.setMinimized(false)
                         mainWindow.toFront()
-                        mainWindow.requestFocus()
                     }
                 }
 
                 NativeTheme(darkTheme = isSystemInDarkMode()) {
-                    TitleBar {
+                    TitleBar { _ ->
                         androidx.compose.material.Text(
                             text = "AeroDL",
                             modifier = Modifier.padding(start = 16.dp),
