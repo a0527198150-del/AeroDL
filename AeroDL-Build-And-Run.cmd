@@ -51,21 +51,8 @@ if not exist gradlew.bat (
   echo ERROR: Gradle wrapper missing.
   goto :fail
 )
-echo [2/4] Java environment...
-where java >nul 2>&1
-if errorlevel 1 (
-  echo WARNING: java not available on PATH. Gradle may use JAVA_HOME.
-)
-echo [3/4] Building and running tests; log: "%LOG%"
-call gradlew.bat --no-daemon check > "%LOG%" 2>&1
-if errorlevel 1 (
-  echo BUILD FAILED. Showing the last lines from the log:
-  powershell -NoProfile -Command "Get-Content -LiteralPath '%LOG%' -Tail 100"
-  goto :fail
-)
-echo BUILD SUCCESS.
-echo [4/4] Launching AeroDL...
-call gradlew.bat :composeApp:run
+echo [2/4] Checking Java and running Gradle...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%TARGET%\scripts\Build-Run-Windows.ps1"
 if errorlevel 1 goto :fail
 echo AeroDL exited normally.
 pause
