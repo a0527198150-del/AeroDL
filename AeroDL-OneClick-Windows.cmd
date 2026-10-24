@@ -90,8 +90,15 @@ if errorlevel 1 (
   goto :fail
 )
 call :log BUILD SUCCEEDED. Starting AeroDL...
-call gradlew.bat :composeApp:run
-if errorlevel 1 goto :fail
+call :log Runtime output is written to "%SUPPORT%\runtime.log"
+call gradlew.bat :composeApp:run --stacktrace > "%SUPPORT%\runtime.log" 2>&1
+if errorlevel 1 (
+  call :err AeroDL stopped with a nonzero exit code.
+  call :log Showing the final runtime log lines:
+  powershell.exe -NoProfile -Command "Get-Content -LiteralPath '%SUPPORT%\runtime.log' -Tail 90"
+  call :log If the window froze, inspect the runtime log and Windows Event Viewer.
+  goto :fail
+)
 call :log Application exited normally.
 pause
 exit /b 0
