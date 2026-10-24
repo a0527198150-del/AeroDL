@@ -1,7 +1,9 @@
 package io.github.kdroidfilter.ytdlpgui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
 import androidx.compose.runtime.*
@@ -250,16 +252,28 @@ fun main(args: Array<String>) {
             ) {
 
                 NativeTheme(darkTheme = true) {
-                    TitleBar { _ ->
-                        androidx.compose.material.Text(
-                            text = "AeroDL",
-                            modifier = Modifier.padding(start = 16.dp),
-                            color = Color.White,
-                        )
-                    }
-                    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(Color(0xFF11151D))) {
-                        CompositionLocalProvider(LocalAppGraph provides appGraph) {
-                            App()
+                    // The Tao backend draws Windows minimize/maximize/close controls
+                    // inside TitleBar. Give the chrome its own measured row and
+                    // constrain the workspace to the remaining height.
+                    Column(Modifier.fillMaxSize()) {
+                        TitleBar(
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { _ ->
+                            androidx.compose.material.Text(
+                                text = "AeroDL",
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = Color.White,
+                            )
+                        }
+                        androidx.compose.foundation.layout.Box(
+                            Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .background(Color(0xFF11151D)),
+                        ) {
+                            CompositionLocalProvider(LocalAppGraph provides appGraph) {
+                                App()
+                            }
                         }
                     }
                 }
