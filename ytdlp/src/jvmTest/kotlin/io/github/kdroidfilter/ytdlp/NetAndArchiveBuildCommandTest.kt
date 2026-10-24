@@ -72,6 +72,25 @@ class NetAndArchiveBuildCommandTest {
     }
 
     @Test
+    fun buildCommand_preservesConfiguredProxyAndTlsOptions() {
+        val options = Options(
+            proxy = "1.1.1.1",
+            noCheckCertificate = true,
+        )
+        val args = NetAndArchive.buildCommand(
+            ytDlpPath = "/usr/bin/yt-dlp",
+            ffmpegPath = null,
+            denoPath = null,
+            url = "https://www.youtube.com/watch?v=example1234",
+            options = options,
+            downloadDir = null,
+        )
+        assertTrue(args.contains("--proxy"))
+        assertTrue(args.contains("1.1.1.1"))
+        assertTrue(args.contains("--no-check-certificate"))
+    }
+
+    @Test
     fun buildCommand_includesSponsorBlockRemove_whenEnabled() {
         val opts = Options(
             outputTemplate = "%(title)s.%(ext)s",

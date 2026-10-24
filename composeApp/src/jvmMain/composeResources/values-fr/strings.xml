@@ -307,5 +307,5 @@
     <string name="bulk_error_network_filtered">L’accès à YouTube est bloqué par le filtrage réseau. Vérifiez les autorisations et réessayez.</string>
     <string name="bulk_error_authentication">YouTube demande une connexion pour ce contenu. Choisissez un navigateur connecté dans les paramètres. Sous Windows, l’extraction des cookies Chrome/Edge peut échouer.</string>
     <string name="bulk_error_connection">Impossible de se connecter à YouTube. Vérifiez votre connexion et les certificats TLS, puis réessayez.</string>
-    <string name="bulk_error_other">Les deux méthodes d’extraction ont échoué. Les détails figurent dans le journal de l’application.</string>
+    <string name="bulk_error_other">Impossible de charger la playlist. Consultez le journal de l’application. Le repli HTTP direct est désactivé si un proxy est configuré.</string>
 </resources>

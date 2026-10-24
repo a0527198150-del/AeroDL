@@ -141,7 +141,12 @@ class BulkDownloadViewModel(
                     infoln { "[BulkDownloadViewModel] Got video list successfully" }
                     infoln { "[BulkDownloadViewModel] Entries: ${videoList.size}" }
                     if (videoList.isEmpty()) {
-                        startFallback("yt-dlp returned an empty playlist")
+                        if (settingsRepository.proxy.value.isNotBlank()) {
+                            _isLoading.value = false
+                            _fallbackState.value = FallbackState.Error(PlaylistFailureReason.OTHER)
+                        } else {
+                            startFallback("yt-dlp returned an empty playlist")
+                        }
                     } else {
                         handleVideoListSuccess(videoList)
                     }
@@ -154,9 +159,16 @@ class BulkDownloadViewModel(
                         // an appropriate retry when access has been denied.
                         _isLoading.value = false
                         _fallbackState.value = FallbackState.Error(PlaylistFailureReason.NETWORK_FILTERED)
+                    } else if (settingsRepository.proxy.value.isNotBlank()) {
+                        // The Ktor HTTP fallback uses a separate direct connection.
+                        // It does not inherit the user's yt-dlp proxy or TLS settings,
+                        // so its failure would produce a misleading "blocked" error.
+                        // Report the primary yt-dlp error instead of making a
+                        // non-equivalent unproxied request.
+                        _isLoading.value = false
+                        _fallbackState.value = FallbackState.Error(classifyPlaylistFailure(detail))
                     } else {
-                        // Try public metadata first. Browser login is not required
-                        // just because the primary extractor encountered an error.
+                        // Try public metadata first when no proxy is required.
                         startFallback(detail)
                     }
                 }

@@ -322,5 +322,5 @@
     <string name="bulk_error_network_filtered">Network filtering denied access to YouTube. Check your network access settings and try again.</string>
     <string name="bulk_error_authentication">YouTube requires a signed-in account for this content. Select a signed-in browser in Settings. On Windows, Chrome/Edge cookie extraction may fail.</string>
     <string name="bulk_error_connection">Could not connect to YouTube. Check your network connection and TLS certificates, then retry.</string>
-    <string name="bulk_error_other">Both playlist extraction methods failed. Details of both errors are available in the application log.</string>
+    <string name="bulk_error_other">Could not load the playlist. See the application log for details. When a proxy is configured, the direct HTTP fallback is not attempted.</string>
 </resources>

@@ -324,5 +324,5 @@
     <string name="bulk_error_network_filtered">הגישה ל־YouTube נחסמה על ידי סינון הרשת. בדוק את הרשאות הגישה ונסה שוב.</string>
     <string name="bulk_error_authentication">YouTube דורש התחברות עבור תוכן זה. אפשר לבחור דפדפן מחובר בהגדרות. ב־Windows ייתכן שחילוץ עוגיות מ־Chrome או Edge לא יצליח.</string>
     <string name="bulk_error_connection">לא ניתן להתחבר ל־YouTube. בדוק את חיבור הרשת ואת תעודות האבטחה ונסה שוב.</string>
-    <string name="bulk_error_other">לא הצלחנו לטעון את רשימת הסרטונים גם בניסיון החלופי. פרטי שתי השגיאות נמצאים ביומן האפליקציה.</string>
+    <string name="bulk_error_other">לא ניתן לטעון את רשימת הסרטונים. פרטי השגיאה נמצאים ביומן האפליקציה. אם הוגדר פרוקסי, לא מופעל ניסיון חלופי ללא פרוקסי.</string>
 </resources>

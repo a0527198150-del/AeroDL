@@ -620,21 +620,25 @@ class YtDlpWrapper {
                 return@launch
             }
 
-            infoln { "[YtDlpWrapper] Checking network connectivity..." }
-            checkNetwork(url, 5000, 5000).getOrElse {
-                val networkError = it.message ?: "Network unavailable"
-                errorln { "[YtDlpWrapper] Network pre-check failed: $networkError" }
-                onEvent(Event.NetworkProblem(networkError))
-                onEvent(Event.Error("Network pre-check failed."))
-                return@launch
-            }
-            infoln { "[YtDlpWrapper] Network check passed" }
-
             val finalOptions = options.copy(
                 noCheckCertificate = if (options.noCheckCertificate) true else this@YtDlpWrapper.noCheckCertificate,
                 cookiesFromBrowser = options.cookiesFromBrowser ?: this@YtDlpWrapper.cookiesFromBrowser,
                 proxy = options.proxy ?: this@YtDlpWrapper.proxy
             )
+
+            // The app's HEAD preflight opens a direct connection and does not
+            // honor yt-dlp's proxy settings. On proxied connections it can fail
+            // before yt-dlp is ever given a chance to make an allowed request.
+            // Let yt-dlp perform its own network check when a proxy is configured.
+            if (finalOptions.proxy.isNullOrBlank()) {
+                checkNetwork(url, 5000, 5000).getOrElse {
+                    val networkError = it.message ?: "Network unavailable"
+                    errorln { "[YtDlpWrapper] Network pre-check failed: $networkError" }
+                    onEvent(Event.NetworkProblem(networkError))
+                    onEvent(Event.Error("Network pre-check failed."))
+                    return@launch
+                }
+            }
 
             options.subtitles?.let { subOpts ->
                 infoln { "[YtDlpWrapper] Subtitle options provided: languages=${subOpts.languages}, embed=${subOpts.embedSubtitles}, writeAuto=${subOpts.writeAutoSubtitles}" }
@@ -797,7 +801,9 @@ class YtDlpWrapper {
         timeoutSec: Long = 20
     ): Result<String> {
         if (!isAvailable()) return Result.failure(IllegalStateException("yt-dlp is not available."))
-        checkNetwork(url, 5000, 5000).getOrElse { return Result.failure(it) }
+        if (proxy.isNullOrBlank()) {
+            checkNetwork(url, 5000, 5000).getOrElse { return Result.failure(it) }
+        }
 
         val useNoCheckCert = noCheckCertificate || this.noCheckCertificate
         val args = buildList {
@@ -1217,7 +1223,9 @@ class YtDlpWrapper {
         extraArgs: List<String>
     ): Result<String> {
         if (!isAvailable()) return Result.failure(IllegalStateException("yt-dlp is not available."))
-        checkNetwork(url, 5000, 5000).getOrElse { return Result.failure(it) }
+        if (proxy.isNullOrBlank()) {
+            checkNetwork(url, 5000, 5000).getOrElse { return Result.failure(it) }
+        }
 
         val useNoCheckCert = noCheckCertificate || this.noCheckCertificate
         val cmdArgs = buildList {
