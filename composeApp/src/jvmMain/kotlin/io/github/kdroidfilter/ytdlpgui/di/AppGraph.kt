@@ -53,7 +53,7 @@ abstract class AppGraph : ViewModelGraph {
     @Provides
     @SingleIn(AppScope::class)
     fun provideNucleusUpdater(): NucleusUpdater = NucleusUpdater {
-        provider = GitHubProvider(owner = "kdroidFilter", repo = "AeroDL")
+        provider = GitHubProvider(owner = "a0527198150-del", repo = "AeroDL")
         httpClient = NativeHttpClient.create()
     }
 
@@ -68,7 +68,7 @@ abstract class AppGraph : ViewModelGraph {
     @Provides
     @SingleIn(AppScope::class)
     fun provideSettings(): Settings {
-        val prefs = Preferences.userRoot().node("io/github/kdroidfilter/aerodl")
+        val prefs = Preferences.userRoot().node("io/github/a0527198150/aerodl")
         return PreferencesSettings(prefs)
     }
 

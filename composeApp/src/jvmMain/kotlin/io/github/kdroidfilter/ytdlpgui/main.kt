@@ -1,13 +1,10 @@
 package io.github.kdroidfilter.ytdlpgui
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.DpSize
@@ -16,12 +13,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import coil3.SingletonImageLoader
 import com.russhwolf.settings.Settings
+import dev.nucleusframework.application.DecoratedWindow
 import dev.nucleusframework.application.SingleInstanceRestoreEffect
 import dev.nucleusframework.application.aotTraining
 import dev.nucleusframework.application.nucleusApplication
 import dev.nucleusframework.autolaunch.AutoLaunch
-import dev.nucleusframework.composenativetray.trayapp.TrayApp
-import dev.nucleusframework.composenativetray.trayapp.TrayWindowDismissMode
+import dev.nucleusframework.composenativetray.tray.api.Tray
 import dev.nucleusframework.composenativetray.trayapp.rememberTrayAppState
 import dev.nucleusframework.composenativetray.utils.allowComposeNativeTrayLogging
 import dev.nucleusframework.composenativetray.utils.isMenuBarInDarkMode
@@ -30,6 +27,8 @@ import dev.nucleusframework.core.runtime.Platform
 import dev.nucleusframework.core.runtime.SingleInstanceManager
 import dev.nucleusframework.darkmodedetector.isSystemInDarkMode
 import dev.nucleusframework.energymanager.EnergyManager
+import dev.nucleusframework.window.TitleBar
+import androidx.compose.ui.window.rememberWindowState
 import dev.zacsweers.metro.createGraph
 import dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -43,7 +42,6 @@ import io.github.kdroidfilter.ytdlpgui.core.design.icons.AeroDlLogoOnlyRtl
 import io.github.kdroidfilter.ytdlpgui.di.AppGraph
 import io.github.kdroidfilter.ytdlpgui.di.LocalAppGraph
 import io.github.kdroidfilter.ytdlpgui.di.LocalWindowViewModelStoreOwner
-import io.github.kdroidfilter.ytdlpgui.core.config.SettingsKeys
 import io.github.kdroidfilter.ytdlpgui.di.TrayAppStateHolder
 import io.github.kdroidfilter.ytdlpgui.di.rememberWindowViewModelStoreOwner
 import io.github.kdroidfilter.ytdlpgui.features.system.settings.SettingsEvents
@@ -51,7 +49,6 @@ import io.github.kdroidfilter.ytdlpgui.features.system.settings.SettingsViewMode
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.databasesDir
 import io.github.vinceglb.filekit.path
-import io.sentry.Sentry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.getString
@@ -61,7 +58,7 @@ import kotlin.time.Duration.Companion.seconds
 
 
 fun main(args: Array<String>) {
-    initializeSentry()
+    // Do not send fork diagnostics to the original author Sentry project.
 
     // Configure Skiko render API based on platform (respect pre-set -D flag)
     if (System.getProperty("skiko.renderApi") == null) {
@@ -82,10 +79,10 @@ fun main(args: Array<String>) {
 
     allowComposeNativeTrayLogging = LoggerConfig.enabled
     SingleInstanceManager.configuration = SingleInstanceManager.Configuration(
-        lockIdentifier = "aerodl"
+        lockIdentifier = "aerodl-a0527198150-del"
     )
 
-    FileKit.init(appId = "ada57c09-11e1-4d56-9d5d-0c480f6968ec")
+    FileKit.init(appId = "8b318f2f-f37a-47b0-aeee-f283606d5012")
 
     val cleanInstall = System.getProperty("cleanInstall", "false").toBoolean()
     if (cleanInstall) {
@@ -105,15 +102,7 @@ fun main(args: Array<String>) {
             LocalMetroViewModelFactory provides appGraph.metroViewModelFactory,
         ) {
             val startedAtLogin = remember { AutoLaunch.wasStartedAtLogin(args) }
-            val trayAppState = rememberTrayAppState(
-                initialWindowSize = DpSize(350.dp, 500.dp),
-                initiallyVisible = !startedAtLogin,
-                initialDismissMode = if (appGraph.settings.getBoolean(SettingsKeys.DISABLE_TRAY_AUTO_HIDE, false)) {
-                    TrayWindowDismissMode.MANUAL
-                } else {
-                    TrayWindowDismissMode.AUTO
-                },
-            )
+            val trayAppState = rememberTrayAppState(initiallyVisible = !startedAtLogin)
             TrayAppStateHolder.set(trayAppState)
 
             if (startedAtLogin) {
@@ -149,9 +138,15 @@ fun main(args: Array<String>) {
                 }
             }
 
-            SingleInstanceRestoreEffect {
+            val mainWindowState = rememberWindowState(size = DpSize(1040.dp, 720.dp))
+
+            // Opening the desktop shortcut again restores and focuses this window,
+            // rather than creating another process or displaying a tray-anchored popup.
+            val showMainWindow = {
+                mainWindowState.isMinimized = false
                 trayAppState.show()
             }
+            SingleInstanceRestoreEffect { showMainWindow() }
 
             // Eagerly instantiate clipboard monitoring once, as a side effect
             LaunchedEffect(appGraph) {
@@ -179,9 +174,10 @@ fun main(args: Array<String>) {
             val clipboardEnabled by settingsVm.clipboardMonitoring.collectAsState()
 
             val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+            val isWindowVisible by trayAppState.isVisible.collectAsState()
 
-            nucleusScope.TrayApp(
-                state = trayAppState,
+            Tray(
+                primaryAction = showMainWindow,
                 iconContent = {
                     Icon(
                         if (!isRtl) AeroDlLogoOnly else AeroDlLogoOnlyRtl,
@@ -203,10 +199,10 @@ fun main(args: Array<String>) {
                         Res.string.tray_downloading_suffix
                     )
                 } else "",
-                menu = {
-                    if (!trayAppState.isVisible.value) Item(
+            ) {
+                    if (!isWindowVisible) Item(
                         label = runBlocking { getString(Res.string.menu_show_window) },
-                    ) { trayAppState.show() } else Item(
+                    ) { showMainWindow() } else Item(
                         label = runBlocking { getString(Res.string.menu_hide_window) },
                     ) { trayAppState.hide() }
                     Divider()
@@ -233,27 +229,27 @@ fun main(args: Array<String>) {
                         label = runBlocking { getString(Res.string.app_version_label, NucleusApp.version.orEmpty()) },
                         isEnabled = false,
                     )
-                }
+            }
+
+            // Keep the native tray for background downloads, but render the actual
+            // application as a standard, resizable, taskbar-visible desktop window.
+            nucleusScope.DecoratedWindow(
+                onCloseRequest = { trayAppState.hide() },
+                state = mainWindowState,
+                minimumSize = DpSize(760.dp, 520.dp),
+                title = "AeroDL",
+                visible = isWindowVisible,
             ) {
+
                 NativeTheme(darkTheme = isSystemInDarkMode()) {
-                    val windowShape = RoundedCornerShape(12.dp)
-                    NativeBackground(
-                        Modifier
-                            .fillMaxSize()
-                            .then(
-                                if (NativeTheme.drawsWindowChrome) {
-                                    Modifier
-                                } else {
-                                    Modifier
-                                        .clip(windowShape)
-                                        .border(
-                                            1.dp,
-                                            if (isSystemInDarkMode()) Color.DarkGray else Color.LightGray,
-                                            windowShape,
-                                        )
-                                },
-                            )
-                    ) {
+                    TitleBar { _ ->
+                        androidx.compose.material.Text(
+                            text = "AeroDL",
+                            modifier = Modifier.padding(start = 16.dp),
+                            color = if (isSystemInDarkMode()) Color.White else Color.Black,
+                        )
+                    }
+                    NativeBackground(Modifier.fillMaxSize()) {
                         CompositionLocalProvider(LocalAppGraph provides appGraph) {
                             App()
                         }
@@ -262,21 +258,6 @@ fun main(args: Array<String>) {
             }
         }
     }
-}
-
-private fun initializeSentry() {
-    val sentryEnvironment = System.getenv("SENTRY_ENVIRONMENT")
-        ?.trim()
-        ?.takeIf { it.isNotEmpty() }
-        ?: "development"
-
-    Sentry.init { options ->
-        options.dsn = "https://e77a755df2930d297caf9d6d0fd07deb@o4510855773093888.ingest.de.sentry.io/4510855774797904"
-        options.environment = sentryEnvironment
-        options.release = NucleusApp.version
-        options.isDebug = LoggerConfig.enabled
-    }
-    infoln { "Sentry initialized for environment '$sentryEnvironment'." }
 }
 
 fun clearAppData() {
