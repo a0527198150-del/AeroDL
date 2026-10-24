@@ -25,6 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Text
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.border
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -125,18 +128,32 @@ fun App() {
             }
         }
         Column(
-            Modifier.weight(1f).fillMaxHeight().padding(horizontal = 16.dp, vertical = 12.dp),
+            Modifier.weight(1f).fillMaxHeight().padding(horizontal = 28.dp, vertical = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             if (isDownload || isConverter || (!hasWorkspaceNavigation && !isInitScreen)) {
                 SecondaryNavigationHeader(navController)
             }
-            NavHost(
-            navController = navController,
-            startDestination = Destination.InitScreen,
-            modifier = Modifier.fillMaxSize().weight(1f).padding(start = 16.dp, end = 16.dp, top = 8.dp)
-        ) {
+            Box(
+                Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .then(
+                            if (hasWorkspaceNavigation) Modifier.fillMaxSize()
+                            else Modifier.widthIn(max = 840.dp).fillMaxSize()
+                                .background(Color(0xFF1C2431), RoundedCornerShape(22.dp))
+                                .border(1.dp, Color(0xFF344156), RoundedCornerShape(22.dp))
+                        )
+                        .padding(horizontal = 24.dp, vertical = 22.dp),
+                ) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = Destination.InitScreen,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
             noAnimatedComposable<Destination.InitScreen> { InitScreen(navController) }
 
             navigation<Destination.MainNavigation.Graph>(startDestination = Destination.MainNavigation.Home) {
@@ -187,6 +204,8 @@ fun App() {
             }
         }
 
+                }
+            }
             if (!isInitScreen) Footer()
         }
     }
