@@ -143,10 +143,13 @@ fun main(args: Array<String>) {
                 }
             }
 
+            val mainWindowState = rememberWindowState(size = DpSize(1040.dp, 720.dp))
+
             // Opening the desktop shortcut again restores and focuses this window,
             // rather than creating another process or displaying a tray-anchored popup.
             var windowActivationRequest by remember { mutableIntStateOf(0) }
             val showMainWindow = {
+                mainWindowState.isMinimized = false
                 trayAppState.show()
                 windowActivationRequest++
             }
@@ -240,7 +243,7 @@ fun main(args: Array<String>) {
             // application as a standard, resizable, taskbar-visible desktop window.
             nucleusScope.DecoratedWindow(
                 onCloseRequest = { trayAppState.hide() },
-                state = rememberWindowState(size = DpSize(1040.dp, 720.dp)),
+                state = mainWindowState,
                 minimumSize = DpSize(760.dp, 520.dp),
                 title = "AeroDL",
                 visible = isWindowVisible,
@@ -248,7 +251,6 @@ fun main(args: Array<String>) {
                 val mainWindow = nucleusWindow
                 LaunchedEffect(windowActivationRequest) {
                     if (windowActivationRequest > 0) {
-                        mainWindow.setMinimized(false)
                         mainWindow.toFront()
                     }
                 }
