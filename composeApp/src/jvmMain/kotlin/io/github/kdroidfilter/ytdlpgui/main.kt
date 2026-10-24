@@ -147,11 +147,9 @@ fun main(args: Array<String>) {
 
             // Opening the desktop shortcut again restores and focuses this window,
             // rather than creating another process or displaying a tray-anchored popup.
-            var windowActivationRequest by remember { mutableIntStateOf(0) }
             val showMainWindow = {
                 mainWindowState.isMinimized = false
                 trayAppState.show()
-                windowActivationRequest++
             }
             SingleInstanceRestoreEffect { showMainWindow() }
 
@@ -206,7 +204,7 @@ fun main(args: Array<String>) {
                         Res.string.tray_downloading_suffix
                     )
                 } else "",
-                menu = {
+            ) {
                     if (!isWindowVisible) Item(
                         label = runBlocking { getString(Res.string.menu_show_window) },
                     ) { showMainWindow() } else Item(
@@ -236,8 +234,7 @@ fun main(args: Array<String>) {
                         label = runBlocking { getString(Res.string.app_version_label, NucleusApp.version.orEmpty()) },
                         isEnabled = false,
                     )
-                }
-            )
+            }
 
             // Keep the native tray for background downloads, but render the actual
             // application as a standard, resizable, taskbar-visible desktop window.
@@ -248,12 +245,6 @@ fun main(args: Array<String>) {
                 title = "AeroDL",
                 visible = isWindowVisible,
             ) {
-                val mainWindow = nucleusWindow
-                LaunchedEffect(windowActivationRequest) {
-                    if (windowActivationRequest > 0) {
-                        mainWindow.toFront()
-                    }
-                }
 
                 NativeTheme(darkTheme = isSystemInDarkMode()) {
                     TitleBar { _ ->
