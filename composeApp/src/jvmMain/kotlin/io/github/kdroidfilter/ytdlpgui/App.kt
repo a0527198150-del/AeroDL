@@ -1,5 +1,13 @@
 package io.github.kdroidfilter.ytdlpgui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +20,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.Text
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -85,17 +98,41 @@ fun App() {
     } == true
     val isInitScreen = currentDestination?.hasRoute(Destination.InitScreen::class) == true
 
-    Column(
-        Modifier
-            .fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-
-        if (isMainNavigation) MainNavigationHeader(navController)
-        if (isSecondaryNavigation || isDownload || isConverter) SecondaryNavigationHeader(navController)
-
-        NavHost(
+    val hasWorkspaceNavigation = isMainNavigation || isSecondaryNavigation || isDownload || isConverter
+    Row(Modifier.fillMaxSize().background(Color(0xFF11151D))) {
+        if (hasWorkspaceNavigation) {
+            Column(
+                Modifier.width(224.dp).fillMaxHeight().background(Color(0xFF171D28)).padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text("AERODL", color = Color(0xFFD6B77A), fontWeight = FontWeight.Bold)
+                Text("Download studio", color = Color(0xFF91A0B6))
+                Spacer(Modifier.height(18.dp))
+                HorizontalDivider(color = Color(0xFF303B4D))
+                Spacer(Modifier.height(12.dp))
+                DesktopNavItem("Home", isMainNavigation && currentDestination?.hasRoute(Destination.MainNavigation.Home::class) == true) {
+                    navController.navigate(Destination.MainNavigation.Home) { launchSingleTop = true }
+                }
+                DesktopNavItem("Downloads", currentDestination?.hasRoute(Destination.MainNavigation.Downloader::class) == true) {
+                    navController.navigate(Destination.MainNavigation.Downloader) { launchSingleTop = true }
+                }
+                DesktopNavItem("Settings", currentDestination?.hasRoute(Destination.SecondaryNavigation.Settings::class) == true) {
+                    navController.navigate(Destination.SecondaryNavigation.Settings) { launchSingleTop = true }
+                }
+                DesktopNavItem("About", currentDestination?.hasRoute(Destination.SecondaryNavigation.About::class) == true) {
+                    navController.navigate(Destination.SecondaryNavigation.About) { launchSingleTop = true }
+                }
+            }
+        }
+        Column(
+            Modifier.weight(1f).fillMaxHeight().padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            if (isDownload || isConverter || (!hasWorkspaceNavigation && !isInitScreen)) {
+                SecondaryNavigationHeader(navController)
+            }
+            NavHost(
             navController = navController,
             startDestination = Destination.InitScreen,
             modifier = Modifier.fillMaxSize().weight(1f).padding(start = 16.dp, end = 16.dp, top = 8.dp)
@@ -150,8 +187,24 @@ fun App() {
             }
         }
 
-        if (!isInitScreen) Footer()
+            if (!isInitScreen) Footer()
+        }
     }
+}
+
+@Composable
+private fun DesktopNavItem(title: String, selected: Boolean, onClick: () -> Unit) {
+    val foreground = if (selected) Color(0xFFF4D9A5) else Color(0xFFCAD2DE)
+    val surface = if (selected) Color(0xFF34313A) else Color.Transparent
+    Text(
+        text = title,
+        color = foreground,
+        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+        modifier = Modifier.fillMaxWidth()
+            .background(surface, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+    )
 }
 
 @Composable
