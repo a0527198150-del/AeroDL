@@ -34,7 +34,7 @@ fun Footer(
         TooltipBox(tooltip = { Text(stringResource(Res.string.tooltip_github)) }) {
             SubtleButton(
                 iconOnly = true,
-                onClick = { openUrlInBrowser("https://github.com/kdroidFilter/ytdlpgui") },
+                onClick = { openUrlInBrowser("https://github.com/a0527198150-del/AeroDL") },
                 modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
             ) {
                 Icon(
