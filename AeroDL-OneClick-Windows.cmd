@@ -68,10 +68,10 @@ if errorlevel 1 goto :fail
 call :log Step 3 - preparing Java certificate trust for NetFree
 if not exist "%NETFREE_CERT%" (
   call :log Local NetFree certificate not found. Downloading from official netfree.link domain...
-  set "NETFREE_CERT=%SUPPORT%\netfree-ca.crt"
   curl.exe --fail --location --show-error --max-time 45 --output "%SUPPORT%\netfree-ca.crt" https://netfree.link/netfree-ca.crt
   if errorlevel 1 (call :err Cannot obtain the certificate from the official NetFree URL. & goto :fail)
 )
+if not exist "%NETFREE_CERT%" set "NETFREE_CERT=%SUPPORT%\netfree-ca.crt"
 "%JAVA_HOME%\bin\keytool.exe" -printcert -file "%NETFREE_CERT%" >nul 2>&1
 if errorlevel 1 (call :err The NetFree certificate file is not a valid X.509 certificate. & goto :fail)
 if not exist "%JAVA_HOME%\lib\security\cacerts" (call :err JDK trust store was not found. & goto :fail)
