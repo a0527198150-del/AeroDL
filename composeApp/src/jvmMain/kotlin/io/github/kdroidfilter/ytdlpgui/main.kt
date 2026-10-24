@@ -1,13 +1,10 @@
 package io.github.kdroidfilter.ytdlpgui
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.DpSize
@@ -16,11 +13,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import coil3.SingletonImageLoader
 import com.russhwolf.settings.Settings
+import dev.nucleusframework.application.DecoratedWindow
 import dev.nucleusframework.application.SingleInstanceRestoreEffect
 import dev.nucleusframework.application.aotTraining
 import dev.nucleusframework.application.nucleusApplication
 import dev.nucleusframework.autolaunch.AutoLaunch
-import dev.nucleusframework.composenativetray.trayapp.TrayApp
+import dev.nucleusframework.composenativetray.tray.api.Tray
 import dev.nucleusframework.composenativetray.trayapp.TrayWindowDismissMode
 import dev.nucleusframework.composenativetray.trayapp.rememberTrayAppState
 import dev.nucleusframework.composenativetray.utils.allowComposeNativeTrayLogging
@@ -30,6 +28,8 @@ import dev.nucleusframework.core.runtime.Platform
 import dev.nucleusframework.core.runtime.SingleInstanceManager
 import dev.nucleusframework.darkmodedetector.isSystemInDarkMode
 import dev.nucleusframework.energymanager.EnergyManager
+import dev.nucleusframework.window.TitleBar
+import androidx.compose.ui.window.rememberWindowState
 import dev.zacsweers.metro.createGraph
 import dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -106,13 +106,9 @@ fun main(args: Array<String>) {
         ) {
             val startedAtLogin = remember { AutoLaunch.wasStartedAtLogin(args) }
             val trayAppState = rememberTrayAppState(
-                initialWindowSize = DpSize(350.dp, 500.dp),
                 initiallyVisible = !startedAtLogin,
-                initialDismissMode = if (appGraph.settings.getBoolean(SettingsKeys.DISABLE_TRAY_AUTO_HIDE, false)) {
-                    TrayWindowDismissMode.MANUAL
-                } else {
-                    TrayWindowDismissMode.AUTO
-                },
+                // The main UI is a normal desktop window, never an auto-dismissing tray popup.
+                initialDismissMode = TrayWindowDismissMode.MANUAL,
             )
             TrayAppStateHolder.set(trayAppState)
 
@@ -149,9 +145,14 @@ fun main(args: Array<String>) {
                 }
             }
 
-            SingleInstanceRestoreEffect {
+            // Opening the desktop shortcut again restores and focuses this window,
+            // rather than creating another process or displaying a tray-anchored popup.
+            var windowActivationRequest by remember { mutableIntStateOf(0) }
+            val showMainWindow = {
                 trayAppState.show()
+                windowActivationRequest++
             }
+            SingleInstanceRestoreEffect { showMainWindow() }
 
             // Eagerly instantiate clipboard monitoring once, as a side effect
             LaunchedEffect(appGraph) {
@@ -179,9 +180,10 @@ fun main(args: Array<String>) {
             val clipboardEnabled by settingsVm.clipboardMonitoring.collectAsState()
 
             val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+            val isWindowVisible by trayAppState.isVisible.collectAsState()
 
-            nucleusScope.TrayApp(
-                state = trayAppState,
+            Tray(
+                primaryAction = showMainWindow,
                 iconContent = {
                     Icon(
                         if (!isRtl) AeroDlLogoOnly else AeroDlLogoOnlyRtl,
@@ -204,9 +206,9 @@ fun main(args: Array<String>) {
                     )
                 } else "",
                 menu = {
-                    if (!trayAppState.isVisible.value) Item(
+                    if (!isWindowVisible) Item(
                         label = runBlocking { getString(Res.string.menu_show_window) },
-                    ) { trayAppState.show() } else Item(
+                    ) { showMainWindow() } else Item(
                         label = runBlocking { getString(Res.string.menu_hide_window) },
                     ) { trayAppState.hide() }
                     Divider()
@@ -234,26 +236,36 @@ fun main(args: Array<String>) {
                         isEnabled = false,
                     )
                 }
+            )
+
+            // Keep the native tray for background downloads, but render the actual
+            // application as a standard, resizable, taskbar-visible desktop window.
+            nucleusScope.DecoratedWindow(
+                onCloseRequest = { trayAppState.hide() },
+                state = rememberWindowState(size = DpSize(1040.dp, 720.dp)),
+                minimumSize = DpSize(760.dp, 520.dp),
+                title = "AeroDL",
+                visible = isWindowVisible,
             ) {
+                val mainWindow = nucleusWindow
+                LaunchedEffect(windowActivationRequest) {
+                    if (windowActivationRequest > 0) {
+                        mainWindow.show()
+                        mainWindow.setMinimized(false)
+                        mainWindow.toFront()
+                        mainWindow.requestFocus()
+                    }
+                }
+
                 NativeTheme(darkTheme = isSystemInDarkMode()) {
-                    val windowShape = RoundedCornerShape(12.dp)
-                    NativeBackground(
-                        Modifier
-                            .fillMaxSize()
-                            .then(
-                                if (NativeTheme.drawsWindowChrome) {
-                                    Modifier
-                                } else {
-                                    Modifier
-                                        .clip(windowShape)
-                                        .border(
-                                            1.dp,
-                                            if (isSystemInDarkMode()) Color.DarkGray else Color.LightGray,
-                                            windowShape,
-                                        )
-                                },
-                            )
-                    ) {
+                    TitleBar {
+                        androidx.compose.material.Text(
+                            text = "AeroDL",
+                            modifier = Modifier.padding(start = 16.dp),
+                            color = if (isSystemInDarkMode()) Color.White else Color.Black,
+                        )
+                    }
+                    NativeBackground(Modifier.fillMaxSize()) {
                         CompositionLocalProvider(LocalAppGraph provides appGraph) {
                             App()
                         }
