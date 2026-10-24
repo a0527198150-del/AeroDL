@@ -1,5 +1,6 @@
 package io.github.kdroidfilter.ytdlpgui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
@@ -25,7 +26,6 @@ import dev.nucleusframework.composenativetray.utils.isMenuBarInDarkMode
 import dev.nucleusframework.core.runtime.NucleusApp
 import dev.nucleusframework.core.runtime.Platform
 import dev.nucleusframework.core.runtime.SingleInstanceManager
-import dev.nucleusframework.darkmodedetector.isSystemInDarkMode
 import dev.nucleusframework.energymanager.EnergyManager
 import dev.nucleusframework.window.TitleBar
 import androidx.compose.ui.window.rememberWindowState
@@ -33,7 +33,6 @@ import dev.zacsweers.metro.createGraph
 import dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import io.github.kdroidfilter.ytdlpgui.ui.NativeTheme
-import io.github.kdroidfilter.ytdlpgui.ui.component.NativeBackground
 import io.github.kdroidfilter.logging.LoggerConfig
 import io.github.kdroidfilter.logging.errorln
 import io.github.kdroidfilter.logging.infoln
@@ -241,15 +240,15 @@ fun main(args: Array<String>) {
                 visible = isWindowVisible,
             ) {
 
-                NativeTheme(darkTheme = isSystemInDarkMode()) {
+                NativeTheme(darkTheme = true) {
                     TitleBar { _ ->
                         androidx.compose.material.Text(
                             text = "AeroDL",
                             modifier = Modifier.padding(start = 16.dp),
-                            color = if (isSystemInDarkMode()) Color.White else Color.Black,
+                            color = Color.White,
                         )
                     }
-                    NativeBackground(Modifier.fillMaxSize()) {
+                    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(Color(0xFF11151D))) {
                         CompositionLocalProvider(LocalAppGraph provides appGraph) {
                             App()
                         }
