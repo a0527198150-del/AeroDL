@@ -49,8 +49,7 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.databasesDir
 import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 import ytdlpgui.composeapp.generated.resources.*
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
@@ -175,6 +174,20 @@ fun main(args: Array<String>) {
             val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
             val isWindowVisible by trayAppState.isVisible.collectAsState()
 
+            // Resolve the menu texts in Compose rather than synchronously blocking
+            // the event thread when rendering or updating the system tray.
+            val appName = stringResource(Res.string.app_name)
+            val downloadingSuffix = stringResource(Res.string.tray_downloading_suffix)
+            val showWindowLabel = stringResource(Res.string.menu_show_window)
+            val hideWindowLabel = stringResource(Res.string.menu_hide_window)
+            val autoStartLabel = stringResource(Res.string.settings_auto_launch_title)
+            val clipboardLabel = stringResource(Res.string.settings_clipboard_monitoring_title)
+            val quitLabel = stringResource(Res.string.quit)
+            val versionLabel = stringResource(
+                Res.string.app_version_label,
+                NucleusApp.version.orEmpty(),
+            )
+
             Tray(
                 primaryAction = showMainWindow,
                 iconContent = {
@@ -193,27 +206,23 @@ fun main(args: Array<String>) {
                         },
                     )
                 },
-                tooltip = runBlocking { getString(Res.string.app_name) } + if (isDownloading) runBlocking {
-                    getString(
-                        Res.string.tray_downloading_suffix
-                    )
-                } else "",
+                tooltip = appName + if (isDownloading) downloadingSuffix else "",
             ) {
                     if (!isWindowVisible) Item(
-                        label = runBlocking { getString(Res.string.menu_show_window) },
+                        label = showWindowLabel,
                     ) { showMainWindow() } else Item(
-                        label = runBlocking { getString(Res.string.menu_hide_window) },
+                        label = hideWindowLabel,
                     ) { trayAppState.hide() }
                     Divider()
                     CheckableItem(
-                        label = runBlocking { getString(Res.string.settings_auto_launch_title) },
+                        label = autoStartLabel,
                         checked = autoStartEnabled,
                         onCheckedChange = { checked ->
                             settingsVm.handleEvent(SettingsEvents.SetAutoLaunchEnabled(checked))
                         },
                     )
                     CheckableItem(
-                        label = runBlocking { getString(Res.string.settings_clipboard_monitoring_title) },
+                        label = clipboardLabel,
                         checked = clipboardEnabled,
                         onCheckedChange = { checked ->
                             settingsVm.handleEvent(SettingsEvents.SetClipboardMonitoring(checked))
@@ -221,11 +230,11 @@ fun main(args: Array<String>) {
                     )
                     Divider()
                     Item(
-                        label = runBlocking { getString(Res.string.quit) },
+                        label = quitLabel,
                         onClick = { exitApplication() },
                     )
                     Item(
-                        label = runBlocking { getString(Res.string.app_version_label, NucleusApp.version.orEmpty()) },
+                        label = versionLabel,
                         isEnabled = false,
                     )
             }
