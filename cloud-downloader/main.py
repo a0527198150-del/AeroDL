@@ -86,22 +86,36 @@ def upload_to_drive(path: Path) -> str:
     return "https://drive.google.com/file/d/" + result["id"] + "/view"
 
 
+COOKIE_FILE = Path("/etc/secrets/youtube-cookies.txt")
+
+
+def build_download_command(output: Path, url: str) -> list[str]:
+    """Construct a one-item download, optionally using a Render Secret File.
+
+    The secret file is never read into GitHub/Render logs, environment variables,
+    or command-line arguments. Only the path is passed to yt-dlp.
+    """
+    command = [
+        "yt-dlp",
+        "--no-playlist",
+        "--max-downloads", "1",
+        "--max-filesize", "30M",
+        "--socket-timeout", "20",
+        "--retries", "2",
+        "--extract-audio", "--audio-format", "mp3",
+        "--audio-quality", "2",
+        "--output", str(output / "%(title).120B [%(id)s].%(ext)s"),
+    ]
+    if COOKIE_FILE.is_file():
+        command.extend(["--cookies", str(COOKIE_FILE)])
+    return [*command, url]
+
+
 def process_issue(number: int, url: str) -> None:
     try:
         with tempfile.TemporaryDirectory(prefix="aerodl-") as directory:
             out = Path(directory)
-            command = [
-                "yt-dlp",
-                "--no-playlist",
-                "--max-downloads", "1",
-                "--max-filesize", "30M",
-                "--socket-timeout", "20",
-                "--retries", "2",
-                "--extract-audio", "--audio-format", "mp3",
-                "--audio-quality", "2",
-                "--output", str(out / "%(title).120B [%(id)s].%(ext)s"),
-                url,
-            ]
+            command = build_download_command(out, url)
             result = subprocess.run(command, capture_output=True, text=True, timeout=480, check=False)
             if result.returncode:
                 log.error("Download failed for issue #%s (exit %s): %s",
