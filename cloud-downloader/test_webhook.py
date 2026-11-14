@@ -85,6 +85,25 @@ class WebhookTests(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 415)
 
+    def test_download_command_without_cookies(self):
+        from pathlib import Path
+        from unittest.mock import patch
+        with patch.object(main, "COOKIE_FILE", Path("/tmp/aerodl-cookie-file-that-does-not-exist")):
+            command = main.build_download_command(Path("/tmp"), "https://youtu.be/abc")
+        self.assertNotIn("--cookies", command)
+        self.assertEqual(command[-1], "https://youtu.be/abc")
+        self.assertIn("--no-playlist", command)
+
+    def test_download_command_with_secret_file(self):
+        from pathlib import Path
+        from unittest.mock import patch
+        with patch.object(main, "COOKIE_FILE", Path("/etc/secrets/youtube-cookies.txt")):
+            with patch.object(Path, "is_file", return_value=True):
+                command = main.build_download_command(Path("/tmp"), "https://youtu.be/abc")
+        index = command.index("--cookies")
+        self.assertEqual(command[index + 1], "/etc/secrets/youtube-cookies.txt")
+        self.assertEqual(command[-1], "https://youtu.be/abc")
+
     def test_valid_issue_queued(self):
         response = self.send(self.payload())
         self.assertEqual(response.status_code, 200)
