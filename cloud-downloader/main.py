@@ -152,10 +152,26 @@ async def webhook(request: Request):
         return {"ok": True, "event": "ping"}
     if event != "issues":
         return {"ok": True, "ignored": "event"}
+    content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
     try:
-        payload = json.loads(body)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid JSON")
+        if content_type == "application/x-www-form-urlencoded":
+            # GitHub's alternate webhook content type wraps JSON as payload=<urlencoded-json>.
+            from urllib.parse import parse_qs
+            form = parse_qs(body.decode("utf-8"), strict_parsing=True)
+            items = form.get("payload", [])
+            if len(items) != 1:
+                raise ValueError("missing or ambiguous payload form field")
+            payload = json.loads(items[0])
+        elif content_type == "application/json":
+            payload = json.loads(body)
+        else:
+            raise HTTPException(status_code=415, detail="Unsupported webhook content type")
+        if not isinstance(payload, dict):
+            raise ValueError("Webhook payload must be a JSON object")
+    except (UnicodeDecodeError, ValueError) as exc:
+        log.warning("Rejecting malformed GitHub webhook event=%s content_type=%s: %s",
+                    event, content_type, str(exc)[:120])
+        raise HTTPException(status_code=400, detail="Invalid webhook payload") from exc
     issue = payload.get("issue") or {}
     if (payload.get("action") != "opened"
             or (payload.get("repository") or {}).get("full_name") != os.environ.get("GITHUB_REPO")
