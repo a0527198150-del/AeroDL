@@ -2,7 +2,9 @@ services:
   - type: web
     name: aerodl-drive-worker
     runtime: docker
+    region: frankfurt
     plan: free
+    autoDeployTrigger: "off"
     dockerfilePath: ./cloud-downloader/Dockerfile
     dockerContext: ./cloud-downloader
     healthCheckPath: /health
@@ -16,8 +18,6 @@ services:
       - key: DRIVE_UPLOAD_SECRET
         sync: false
       - key: APPS_SCRIPT_URL
-        sync: false
-      - key: GITHUB_NOTIFY_TOKEN
         sync: false
       - key: MAX_FILE_MB
         value: "12"
