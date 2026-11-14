@@ -1,0 +1,22 @@
+name: "Download to Drive"
+description: "Request one permitted audio file. Issues may be public."
+title: "[download] "
+body:
+  - type: markdown
+    attributes:
+      value: "Prototype: only download content you are authorized to store. In a public repository request links are public."
+  - type: input
+    id: url
+    attributes:
+      label: Download URL
+      description: One public YouTube HTTPS video link.
+      placeholder: "https://www.youtube.com/watch?v=..."
+    validations:
+      required: true
+  - type: checkboxes
+    id: permission
+    attributes:
+      label: Rights
+      options:
+        - label: "I have permission to download and store this content."
+          required: true
