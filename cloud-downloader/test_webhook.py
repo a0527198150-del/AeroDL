@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import os
+from urllib.parse import urlencode
 import unittest
 
 os.environ["GITHUB_WEBHOOK_SECRET"] = "a-long-test-secret"
@@ -48,6 +49,41 @@ class WebhookTests(unittest.TestCase):
                 "user": {"login": "a0527198150-del"},
             },
         }
+
+    def test_form_encoded_issue_queued(self):
+        data = self.payload()
+        body = urlencode({"payload": json.dumps(data)}).encode("utf-8")
+        sig = "sha256=" + hmac.new(b"a-long-test-secret", body, hashlib.sha256).hexdigest()
+        response = self.client.post("/github/webhook", content=body, headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Hub-Signature-256": sig,
+            "X-GitHub-Event": "issues",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["queued"], 42)
+        self.assertEqual(len(main.jobs.items), 1)
+
+    def test_form_encoded_missing_payload_rejected(self):
+        body = b"wrongfield=hello"
+        sig = "sha256=" + hmac.new(b"a-long-test-secret", body, hashlib.sha256).hexdigest()
+        response = self.client.post("/github/webhook", content=body, headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Hub-Signature-256": sig,
+            "X-GitHub-Event": "issues",
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(len(main.jobs.items), 0)
+
+    def test_unsupported_content_type_rejected(self):
+        data = self.payload()
+        body = json.dumps(data).encode("utf-8")
+        sig = "sha256=" + hmac.new(b"a-long-test-secret", body, hashlib.sha256).hexdigest()
+        response = self.client.post("/github/webhook", content=body, headers={
+            "Content-Type": "text/plain",
+            "X-Hub-Signature-256": sig,
+            "X-GitHub-Event": "issues",
+        })
+        self.assertEqual(response.status_code, 415)
 
     def test_valid_issue_queued(self):
         response = self.send(self.payload())
