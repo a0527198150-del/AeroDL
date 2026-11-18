@@ -102,6 +102,8 @@ def build_download_command(output: Path, url: str) -> list[str]:
         "--max-filesize", "30M",
         "--socket-timeout", "20",
         "--retries", "2",
+        "--js-runtimes", "deno",
+        "--remote-components", "ejs:github",
         "--extract-audio", "--audio-format", "mp3",
         "--audio-quality", "2",
         "--output", str(output / "%(title).120B [%(id)s].%(ext)s"),
