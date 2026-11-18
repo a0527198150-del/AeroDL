@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: aerodl-drive-worker
+    runtime: docker
+    region: frankfurt
+    plan: free
+    autoDeployTrigger: "off"
+    dockerfilePath: ./cloud-downloader/Dockerfile
+    dockerContext: ./cloud-downloader
+    healthCheckPath: /health
+    envVars:
+      - key: GITHUB_REPO
+        value: a0527198150-del/AeroDL
+      - key: GITHUB_ALLOWED_USER
+        value: a0527198150-del
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: DRIVE_UPLOAD_SECRET
+        sync: false
+      - key: APPS_SCRIPT_URL
+        sync: false
+      - key: MAX_FILE_MB
+        value: "12"
